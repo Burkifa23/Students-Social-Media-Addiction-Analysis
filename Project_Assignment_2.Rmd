@@ -1,0 +1,340 @@
+---
+title: "Project 2: Students' Social Media Addiction Analysis"
+author: "Kwizera Mugwaneza Frank"
+date: "November 17, 2025"
+output: word_document
+---
+
+**Research Question 1: Is daily social media usage hours associated with academic performance?**
+
+- Explanatory Variable: Avg_Daily_Usage_Hours (Quantitative)
+- Response Variable: Affects_Academic_Performance (Categorical)
+
+**Research Question 2: Is social media addiction level associated with relationship conflicts?**
+
+- Explanatory Variable: Addicted_Score (Quantitative)
+- Response Variable: Conflicts_Over_Social_Media (Quantitative)
+
+## 1. Load data set(s) and libraries
+
+```{r setup, message=FALSE, warning=FALSE}
+# Load required libraries
+library(descr)
+library(stats)
+
+# Load the dataset
+social_media_data <- read.csv("Students_Social_Media_Addiction.csv")
+
+# Display structure of the dataset
+str(social_media_data)
+
+# Display first few rows
+head(social_media_data)
+
+# Display summary statistics
+summary(social_media_data)
+```
+
+## 2. Create variable subset
+
+```{r variable_subset}
+# Create subset with only variables needed for the research project
+data_subset <- social_media_data[, c("Age", 
+                                      "Gender", 
+                                      "Academic_Level", 
+                                      "Country",
+                                      "Avg_Daily_Usage_Hours", 
+                                      "Most_Used_Platform",
+                                      "Affects_Academic_Performance", 
+                                      "Sleep_Hours_Per_Night",
+                                      "Mental_Health_Score",
+                                      "Relationship_Status",
+                                      "Conflicts_Over_Social_Media",
+                                      "Addicted_Score")]
+
+# Verify the subset
+dim(data_subset)
+names(data_subset)
+```
+
+## 3. Data management I: check for and recode errors and NAs, if the need be.
+
+```{r data_management_1}
+# Check for missing values in each variable
+cat("Missing values summary:\n")
+colSums(is.na(data_subset))
+
+# Check categorical variables for errors and NAs using freq() from descr package
+# Gender
+cat("\n Gender Frequency \n")
+freq(data_subset$Gender, plot = TRUE, main = "Gender Frequency", ylab="Frequency", col="lightblue")
+
+# Academic_Level
+cat("\n Academic Level Frequency \n")
+freq(data_subset$Academic_Level, plot = TRUE, main = "Academic Level Frequency", ylab="Frequency", col="lightblue")
+
+# Country
+cat("\n Country Frequency \n")
+freq(data_subset$Country, plot = TRUE, main = "Country Frequency", ylab="Frequency", col="lightblue", las=2)
+
+# Most_Used_Platform
+cat("\n Most Used Platform Frequency \n")
+freq(data_subset$Most_Used_Platform, plot = TRUE, main = "Most Used Platform Frequency", ylab="Frequency", col="lightblue",las=2)
+
+# Affects_Academic_Performance
+cat("\n Affects Academic Performance Frequency \n")
+freq(data_subset$Affects_Academic_Performance, plot = TRUE, main = "Affects Academic Performance Frequency", ylab="Frequency", col="lightblue")
+
+# Relationship_Status
+cat("\n Relationship Status Frequency \n")
+freq(data_subset$Relationship_Status, plot = TRUE, main = "Relationship Status Frequency", ylab="Frequency", col="lightblue")
+
+# Check quantitative variables for outliers using histograms
+cat("\n Quantitative Variables Summary \n")
+summary(data_subset[, c("Age", "Avg_Daily_Usage_Hours", "Sleep_Hours_Per_Night", 
+                        "Mental_Health_Score", "Conflicts_Over_Social_Media", "Addicted_Score")])
+
+# Create histograms for quantitative variables
+par(mfrow=c(2,3))
+hist(data_subset$Age, main="Age Distribution", xlab="Age", col="lightblue", breaks=15)
+hist(data_subset$Avg_Daily_Usage_Hours, main="Daily Usage Hours", xlab="Hours", col="lightgreen", breaks=20)
+hist(data_subset$Sleep_Hours_Per_Night, main="Sleep Hours", xlab="Hours", col="lightcoral", breaks=15)
+hist(data_subset$Mental_Health_Score, main="Mental Health Score", xlab="Score (1-10)", col="lightyellow", breaks=10)
+hist(data_subset$Conflicts_Over_Social_Media, main="Conflicts Over Social Media", xlab="Number of Conflicts", col="lightpink", breaks=10)
+hist(data_subset$Addicted_Score, main="Addiction Score", xlab="Score (1-10)", col="lavender", breaks=10)
+par(mfrow=c(1,1))
+
+# Data Quality Check: If No error codes or problematic NAs found my data will be  clean
+```
+
+## 4. Data management II: further subset and create secondary variable, if the need be.
+
+```{r data_management_2}
+# Create a categorical version of daily usage hours for easier analysis
+data_subset$Usage_Category <- cut(data_subset$Avg_Daily_Usage_Hours,
+                                   breaks = c(0, 2, 4, 6, 10),
+                                   labels = c("Low (0-2h)", "Moderate (2-4h)", 
+                                             "High (4-6h)", "Very High (6+h)"),
+                                   include.lowest = TRUE)
+
+# Create a categorical version of addiction score
+data_subset$Addiction_Level <- cut(data_subset$Addicted_Score,
+                                    breaks = c(0, 3, 6, 10),
+                                    labels = c("Low (1-3)", "Moderate (4-6)", "High (7-10)"),
+                                    include.lowest = TRUE)
+
+# Verify new variables
+cat(" Usage Category Frequency \n")
+freq(data_subset$Usage_Category, plot = TRUE,main="Usage Category Frequency", ylab="Frequency", col=c("lightgreen","green","orange", "red"))
+
+cat("\n Addiction Level Frequency \n")
+freq(data_subset$Addiction_Level, plot = TRUE, main="Addiction Level Frequency", ylab="Frequency", col=c("brown", "orange", "red"))
+
+# Verify counts are greater than 30 for chi-square tests
+cat("\n Checking minimum counts for statistical tests \n")
+cat("Crosstab: Usage Category vs Academic Performance\n")
+print(table(data_subset$Usage_Category, data_subset$Affects_Academic_Performance))
+```
+
+## 5. Descriptive statistics (sample means, standard deviations, proportions) and univariate displays
+
+```{r descriptive_statistics}
+
+cat("RESEARCH QUESTION 1: Usage Hours vs Academic Performance\n")
+
+
+# Q → C association: Report means and SDs of explanatory variable for each category of response
+# Mean daily usage by academic performance
+cat("Mean Daily Usage Hours by Academic Performance:\n")
+means_by_performance <- tapply(data_subset$Avg_Daily_Usage_Hours, 
+                               data_subset$Affects_Academic_Performance, 
+                               mean, na.rm = TRUE)
+print(means_by_performance)
+
+# Standard deviation of daily usage by academic performance
+cat("\nStandard Deviation of Daily Usage Hours by Academic Performance:\n")
+sds_by_performance <- tapply(data_subset$Avg_Daily_Usage_Hours, 
+                             data_subset$Affects_Academic_Performance, 
+                             sd, na.rm = TRUE)
+print(sds_by_performance)
+
+# Count by academic performance
+cat("\nCounts by Academic Performance:\n")
+print(table(data_subset$Affects_Academic_Performance))
+
+# Calculate the difference
+diff_hours <- means_by_performance["Yes"] - means_by_performance["No"]
+cat("\nDifference in mean usage: ", round(diff_hours, 2), " hours\n")
+
+cat("\n\n")
+
+cat("RESEARCH QUESTION 2: Addiction Score vs Conflicts\n")
+
+
+# Q → Q association: Report means and SDs for both variables separately
+# Mean and SD for Addiction Score
+cat("Addiction Score:\n")
+cat("  Mean:", mean(data_subset$Addicted_Score, na.rm = TRUE), "\n")
+cat("  SD:", sd(data_subset$Addicted_Score, na.rm = TRUE), "\n")
+
+# Mean and SD for Conflicts
+cat("\nConflicts Over Social Media:\n")
+cat("  Mean:", mean(data_subset$Conflicts_Over_Social_Media, na.rm = TRUE), "\n")
+cat("  SD:", sd(data_subset$Conflicts_Over_Social_Media, na.rm = TRUE), "\n")
+
+# Calculate correlation for Q→Q relationship
+correlation <- cor(data_subset$Addicted_Score, 
+                   data_subset$Conflicts_Over_Social_Media, 
+                   use = "complete.obs")
+cat("\nPearson Correlation Coefficient: r =", round(correlation, 3), "\n")
+
+cat("\n\n")
+
+cat("ADDITIONAL DESCRIPTIVE STATISTICS\n")
+
+
+# Gender distribution
+cat("Gender Distribution:\n")
+print(prop.table(table(data_subset$Gender)))
+
+# Academic Level distribution
+cat("\nAcademic Level Distribution:\n")
+print(prop.table(table(data_subset$Academic_Level)))
+
+# Usage Category distribution
+cat("\nUsage Category Distribution:\n")
+print(prop.table(table(data_subset$Usage_Category)))
+
+# Addiction Level distribution
+cat("\nAddiction Level Distribution:\n")
+print(prop.table(table(data_subset$Addiction_Level)))
+```
+
+## 6. Bivariate tables and graphs
+
+```{r bivariate_analysis, fig.width=10, fig.height=6}
+# GRAPH 1: Boxplot - Daily Usage Hours vs Academic Performance (Q → C)
+
+boxplot(Avg_Daily_Usage_Hours ~ Affects_Academic_Performance,
+        data = data_subset,
+        main = "Daily Social Media Usage Hours by Academic Performance Impact\n(Research Question 1: Q → C Association)",
+        xlab = "Affects Academic Performance",
+        ylab = "Daily Usage Hours",
+        col = c("lightgreen", "salmon"),
+        border = "darkblue",
+        notch = FALSE)
+
+# Add mean points to the boxplot
+means <- tapply(data_subset$Avg_Daily_Usage_Hours, 
+                data_subset$Affects_Academic_Performance, 
+                mean, na.rm = TRUE)
+points(1:length(means), means, pch = 19, col = "red", cex = 1.5)
+legend("topright", legend = "Mean", pch = 19, col = "red", cex = 0.8)
+
+# GRAPH 2: Barplot of Means - Alternative visualization for RQ1
+
+means_data <- tapply(data_subset$Avg_Daily_Usage_Hours, 
+                    data_subset$Affects_Academic_Performance, 
+                    mean, na.rm = TRUE)
+
+barplot(means_data,
+        main = "Mean Daily Usage Hours by Academic Performance Impact\n(Alternative Visualization)",
+        xlab = "Affects Academic Performance",
+        ylab = "Mean Daily Usage Hours",
+        col = c("lightgreen", "lightcoral"),
+        ylim = c(0, max(means_data) * 1.2))
+text(x = c(0.7, 1.9), y = means_data + 0.3, 
+     labels = round(means_data, 2), cex = 1.2, font = 2)
+
+# GRAPH 3: Scatterplot with Line of Best Fit - Addiction Score vs Conflicts (Q → Q)
+
+plot(data_subset$Addicted_Score, 
+     data_subset$Conflicts_Over_Social_Media,
+     main = "Relationship Between Addiction Score and Relationship Conflicts\n(Research Question 2: Q → Q Association)",
+     xlab = "Addiction Score (1-10)",
+     ylab = "Number of Conflicts Over Social Media",
+     pch = 19,
+     col = rgb(0.2, 0.4, 0.8, 0.5),
+     cex = 1.2)
+
+# Add line of best fit
+abline(lm(Conflicts_Over_Social_Media ~ Addicted_Score, data = data_subset), 
+       col = "red", 
+       lwd = 3)
+
+# Add correlation coefficient
+correlation <- cor(data_subset$Addicted_Score, 
+                   data_subset$Conflicts_Over_Social_Media, 
+                   use = "complete.obs")
+legend("topleft", 
+       legend = paste("Pearson r =", round(correlation, 3)), 
+       bty = "n", 
+       cex = 1.2)
+
+# GRAPH 4: Barplot - Usage Category vs Academic Performance (C → C)
+
+# Create proportion table (excluding Low category due to small n)
+data_filtered <- subset(data_subset, Usage_Category != "Low (0-2h)")
+prop_table <- prop.table(table(data_filtered$Usage_Category, 
+                                data_filtered$Affects_Academic_Performance), 
+                          margin = 1)
+
+# Barplot for "Yes" category
+barplot(prop_table[, "Yes"],
+        main = "Proportion Reporting Negative Academic Impact\nby Usage Category",
+        xlab = "Daily Social Media Usage Category",
+        ylab = 'Proportion Reporting "Yes" (Affects Performance)',
+        col = c("gray","lightblue","blue","darkblue"),
+        ylim = c(0, 1),
+        las = 1)
+abline(h = 0.5, col = "darkgray", lty = 2, lwd = 2)
+
+# GRAPH 5: Boxplot - Mental Health Score by Addiction Level
+
+boxplot(Mental_Health_Score ~ Addiction_Level,
+        data = data_subset,
+        main = "Mental Health Scores by Social Media Addiction Level",
+        xlab = "Addiction Level",
+        ylab = "Mental Health Score (1-10, higher = better)",
+        col = c("lightgreen", "lightyellow", "lightcoral"),
+        notch = FALSE,
+        las = 1)
+
+# Add mean points
+means_mh <- tapply(data_subset$Mental_Health_Score, 
+                   data_subset$Addiction_Level, 
+                   mean, na.rm = TRUE)
+points(1:length(means_mh), means_mh, pch = 19, col = "darkblue", cex = 1.5)
+legend("topright", legend = "Mean", pch = 19, col = "darkblue", cex = 0.8)
+```
+
+
+## Summary of Findings
+
+Based on the exploratory data analysis done, interesting patterns were observed in the Students' Social Media Addiction dataset. First, examining the relationship between daily social media usage hours and academic performance reveals a clear distinction between students who report negative academic impacts and those who do not. Students who indicate that social media affects their academic performance negatively use social media for an average of approximately 5.54 hours per day, compared to about 3.80 hours for students who report no negative impact. This 1.74-hour difference (5.54-3.8) suggests excessive usage may interfere with academic responsibilities. The boxplot visualization clearly shows not only higher median usage among affected students but also greater variability in their usage patterns, with some students spending over 7 hours daily on social media platforms. The distributions show minimal overlap between the two groups, suggesting a meaningful and substantial difference that warrants further statistical investigation through hypothesis testing.
+
+
+The second research question, exploring the association between addiction scores and relationship conflicts, demonstrates an even more compelling pattern. The scatterplot reveals a powerful positive linear relationship between these variables, with a Pearson correlation coefficient of approximately 0.934. This high correlation suggests that as students' addiction scores increase, they experience proportionally more conflicts over social media use in their relationships. The relationship appears nearly deterministic within this sample: students with low addiction scores (1-3) typically report 0-1 conflicts, those with moderate scores (4-6) report 1-3 conflicts, and those with high addiction scores (7-10) frequently report 3-5 conflicts. Additional interesting findings emerged from the exploratory analysis, including the observation that students using platforms like TikTok and Instagram tend to report higher addiction scores compared to LinkedIn users, and that mental health scores appear to decline systematically as addiction levels increase. The data reveal that approximately 64% of the sample reports that social media negatively affects their academic performance, with over half the sample falling into the "High" addiction category (scores 7-10). These preliminary findings strongly suggest meaningful associations exist between social media usage patterns, addiction severity, academic outcomes, and interpersonal relationships.
+
+## 7 and 8 section will be completed in the next assignment
+
+## 7. Bivariate analysis (hypothesis tests and post-hoc tests)
+
+## 8. Moderation
+
+## 9. Save
+
+```{r save_data}
+# Save the cleaned and processed dataset
+write.csv(data_subset, 
+          file = "cleaned_social_media_data.csv", 
+          row.names = FALSE)
+
+cat("Cleaned dataset saved successfully.\n")
+cat("Number of observations:", nrow(data_subset), "\n")
+cat("Number of variables:", ncol(data_subset), "\n")
+```
+
+---
+
+ 

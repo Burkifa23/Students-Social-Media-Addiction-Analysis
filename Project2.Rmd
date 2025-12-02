@@ -1,0 +1,82 @@
+---
+title: "Students’ Social Media Addiction"
+author: "Kwizera Mugwaneza Frank"
+date: "2025-11-10"
+output: word_document
+---
+
+**6 Research Questions:**
+
+**1. "Is daily social media usage hours associated with academic performance?"**
+
+### Variables involved:
+
+- _Avg_Daily_Usage_Hours_: **Quantitative**
+The average number of hours per day the student spends on social media platforms, calculated from self-reported weekday and weekend usage estimates.
+
+- _Affects_Academic_Performance_: **Categorical**
+A binary indicator (“Yes”/“No”) reflecting whether the student perceives their social media use as having a negative impact on their academic performance.
+
+
+**2. "Is social media addiction level associated with relationship satisfaction?" **
+
+### Variables involved:
+
+- _Addicted_Score_: **Categorical**
+A composite score from 1 (low addiction) to 10 (high addiction) based on a standardized survey scale (e.g., Bergen Social Media Addiction Scale), quantifying the degree of problematic usage.
+
+- _Conflicts_Over_Social_Media_: **Qualitative**
+The number of arguments or disagreements the student reports having had with family, friends, or partners due to their social media use, serving as a proxy for social friction.
+
+**3. "Is age associated with social media addiction severity?" **
+
+### Variables involved:
+
+- _Age_: **Quantitative**
+The student’s age in completed years at the time of the survey, used to segment analysis by age group and control for developmental differences.
+
+- _Addicted_Score_: **Categorical**
+A composite score from 1 (low addiction) to 10 (high addiction) based on a standardized survey scale (e.g., Bergen Social Media Addiction Scale), quantifying the degree of problematic usage.
+
+**4. "Is country of residence associated with social media usage patterns?" **
+
+
+
+**5. "Is frequency of checking social media associated with academic engagement?" **
+
+**6. "Is preferred social media platform associated with addiction level?" **
+
+ 
+
+## 1. Load data set(s) and libraries 
+``` {r setup, include = TRUE}
+## Load Packages
+library(readr)
+library(descr)
+library(stats)
+## Load Data
+Data<-read.csv("C:\\Users\\kwize\\Documents\\Ashesi\\Statistics\\Project\\Project2\\Students_Social_Media_Addiction.csv")
+## View Data
+#View(Data)
+
+# Construct a Frequency Table
+freq(Data$Age)
+
+## Construct a histogram
+hist(Data$Age)
+
+## Summary
+summary(Data$Age)
+
+
+```
+
+
+## 2. Create variable subset 
+## 3. Data management I: check for and recode errors and NAs, if the need be. 
+## 4. Data management II: further subset and create secondary variable, if the need be. 
+## 5. Descriptive statistics (sample means, standard deviations, proportions) and univariate displays 
+## 6. Bivariate tables and graphs 
+## 7. Bivariate analysis (hypothesis tests and post-hoc tests) 
+## 8. Moderation 
+## 9. Save 
