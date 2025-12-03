@@ -213,7 +213,7 @@ print(prop.table(table(data_subset$Addiction_Level)))
 ## 6. Bivariate tables and graphs
 
 ```{r bivariate_analysis, fig.width=10, fig.height=6}
-# GRAPH 1: Boxplot - Daily Usage Hours vs Academic Performance (Q → C)
+# GRAPH 1: Boxplot - Daily Usage Hours vs Academic Performance (Q → C)  Chi Square
 
 boxplot(Avg_Daily_Usage_Hours ~ Affects_Academic_Performance,
         data = data_subset,
@@ -246,7 +246,7 @@ barplot(means_data,
 text(x = c(0.7, 1.9), y = means_data + 0.3, 
      labels = round(means_data, 2), cex = 1.2, font = 2)
 
-# GRAPH 3: Scatterplot with Line of Best Fit - Addiction Score vs Conflicts (Q → Q)
+# GRAPH 3: Scatterplot with Line of Best Fit - Addiction Score vs Conflicts (Q → Q) Pearson
 
 plot(data_subset$Addicted_Score, 
      data_subset$Conflicts_Over_Social_Media,
@@ -271,7 +271,7 @@ legend("topleft",
        bty = "n", 
        cex = 1.2)
 
-# GRAPH 4: Barplot - Usage Category vs Academic Performance (C → C)
+# GRAPH 4: Barplot - Usage Category vs Academic Performance (C → C) 
 
 # Create proportion table (excluding Low category due to small n)
 data_filtered <- subset(data_subset, Usage_Category != "Low (0-2h)")
@@ -289,7 +289,7 @@ barplot(prop_table[, "Yes"],
         las = 1)
 abline(h = 0.5, col = "darkgray", lty = 2, lwd = 2)
 
-# GRAPH 5: Boxplot - Mental Health Score by Addiction Level
+# GRAPH 5: Boxplot - Mental Health Score by Addiction Level (C → Q)
 
 boxplot(Mental_Health_Score ~ Addiction_Level,
         data = data_subset,
@@ -309,18 +309,416 @@ legend("topright", legend = "Mean", pch = 19, col = "darkblue", cex = 0.8)
 ```
 
 
-## Summary of Findings
-
-Based on the exploratory data analysis done, interesting patterns were observed in the Students' Social Media Addiction dataset. First, examining the relationship between daily social media usage hours and academic performance reveals a clear distinction between students who report negative academic impacts and those who do not. Students who indicate that social media affects their academic performance negatively use social media for an average of approximately 5.54 hours per day, compared to about 3.80 hours for students who report no negative impact. This 1.74-hour difference (5.54-3.8) suggests excessive usage may interfere with academic responsibilities. The boxplot visualization clearly shows not only higher median usage among affected students but also greater variability in their usage patterns, with some students spending over 7 hours daily on social media platforms. The distributions show minimal overlap between the two groups, suggesting a meaningful and substantial difference that warrants further statistical investigation through hypothesis testing.
 
 
-The second research question, exploring the association between addiction scores and relationship conflicts, demonstrates an even more compelling pattern. The scatterplot reveals a powerful positive linear relationship between these variables, with a Pearson correlation coefficient of approximately 0.934. This high correlation suggests that as students' addiction scores increase, they experience proportionally more conflicts over social media use in their relationships. The relationship appears nearly deterministic within this sample: students with low addiction scores (1-3) typically report 0-1 conflicts, those with moderate scores (4-6) report 1-3 conflicts, and those with high addiction scores (7-10) frequently report 3-5 conflicts. Additional interesting findings emerged from the exploratory analysis, including the observation that students using platforms like TikTok and Instagram tend to report higher addiction scores compared to LinkedIn users, and that mental health scores appear to decline systematically as addiction levels increase. The data reveal that approximately 64% of the sample reports that social media negatively affects their academic performance, with over half the sample falling into the "High" addiction category (scores 7-10). These preliminary findings strongly suggest meaningful associations exist between social media usage patterns, addiction severity, academic outcomes, and interpersonal relationships.
-
-## 7 and 8 section will be completed in the next assignment
 
 ## 7. Bivariate analysis (hypothesis tests and post-hoc tests)
+```{r hypothesis_tests}
+
+# HYPOTHESIS TEST 1: Addiction Level (C) → Mental Health Score (Q)
+# Test Type: One-way ANOVA
+
+
+cat("HYPOTHESIS TEST 1: Addiction Level vs Mental Health Score\n")
+cat("Association Type: C → Q (One-way ANOVA)\n")
+
+
+# Prepare data - remove NAs from addiction level
+data_for_anova <- data_subset[!is.na(data_subset$Addiction_Level), ]
+
+# Calculate group statistics
+cat("Group Means and Standard Deviations:\n")
+means_by_addiction <- tapply(data_for_anova$Mental_Health_Score, 
+                             data_for_anova$Addiction_Level, 
+                             mean, na.rm = TRUE)
+print(means_by_addiction)
+
+sds_by_addiction <- tapply(data_for_anova$Mental_Health_Score, 
+                           data_for_anova$Addiction_Level, 
+                           sd, na.rm = TRUE)
+cat("\nStandard Deviations:\n")
+print(sds_by_addiction)
+
+counts_by_addiction <- table(data_for_anova$Addiction_Level)
+cat("\nSample Sizes:\n")
+print(counts_by_addiction)
+
+# Conduct one-way ANOVA
+anova_result <- aov(Mental_Health_Score ~ Addiction_Level, data = data_for_anova)
+anova_summary <- summary(anova_result)
+
+cat("\n\nANOVA Results:\n")
+print(anova_summary)
+
+# Extract F-statistic, df, and p-value
+f_stat <- anova_summary[[1]]$`F value`[1]
+df_between <- anova_summary[[1]]$Df[1]
+df_within <- anova_summary[[1]]$Df[2]
+p_value <- anova_summary[[1]]$`Pr(>F)`[1]
+
+cat("\nF-statistic:", f_stat, "\n")
+cat("Degrees of freedom: between =", df_between, ", within =", df_within, "\n")
+cat("p-value:", p_value, "\n")
+
+# Calculate effect size (Eta-squared)
+ss_between <- anova_summary[[1]]$`Sum Sq`[1]
+ss_total <- sum(anova_summary[[1]]$`Sum Sq`)
+eta_squared <- ss_between / ss_total
+
+cat("\nEffect Size (Eta-squared):", eta_squared, "\n")
+cat("Interpretation:", eta_squared * 100, "% of variance in mental health explained by addiction level\n")
+
+# Post-hoc test: Tukey HSD for pairwise comparisons
+cat("\n\nPost-hoc Test (Tukey HSD):\n")
+tukey_result <- TukeyHSD(anova_result)
+print(tukey_result)
+
+
+# HYPOTHESIS TEST 2: Addiction Score (Q) → Conflicts (Q)
+# Test Type: Pearson Correlation / Linear Regression
+
+
+cat("\n\n")
+
+cat("HYPOTHESIS TEST 2: Addiction Score vs Relationship Conflicts\n")
+cat("Association Type: Q → Q (Pearson Correlation)\n")
+
+
+# Conduct Pearson correlation test
+cor_test_result <- cor.test(data_subset$Addicted_Score, 
+                            data_subset$Conflicts_Over_Social_Media,
+                            method = "pearson")
+
+print(cor_test_result)
+
+# Calculate R-squared
+r_value <- cor_test_result$estimate
+r_squared <- r_value^2
+
+cat("\nR-squared:", r_squared, "\n")
+cat("Interpretation:", r_squared * 100, "% of variance in conflicts explained by addiction score\n")
+
+# Linear regression for slope
+lm_result <- lm(Conflicts_Over_Social_Media ~ Addicted_Score, data = data_subset)
+print(summary(lm_result))
+
+cat("\nRegression equation: Conflicts = ", coef(lm_result)[1], " + ", 
+    coef(lm_result)[2], " * Addiction_Score\n", sep="")
+
+
+# HYPOTHESIS TEST 3: Usage Category (C) → Academic Performance (C)
+# Test Type: Chi-square test of independence
+
+
+cat("\n\n")
+
+cat("HYPOTHESIS TEST 3: Usage Category vs Academic Performance\n")
+cat("Association Type: C → C (Chi-square test)\n")
+
+
+# Filter and drop unused levels
+data_for_chisq <- data_subset[!is.na(data_subset$Usage_Category) & 
+                               data_subset$Usage_Category != "Low (0-2h)", ]
+
+# Remove NaN 
+data_for_chisq$Usage_Category <- droplevels(data_for_chisq$Usage_Category)
+
+
+# Create contingency table
+contingency_table <- table(data_for_chisq$Usage_Category, 
+                           data_for_chisq$Affects_Academic_Performance)
+
+cat("Contingency Table:\n")
+print(contingency_table)
+cat("\n")
+
+# Show proportions
+cat("Proportions (by Usage Category):\n")
+prop_table <- prop.table(contingency_table, margin = 1)
+print(prop_table)
+cat("\n")
+
+# Conduct chi-square test
+chisq_result <- chisq.test(contingency_table)
+print(chisq_result)
+
+# Expected frequencies
+cat("\nExpected Frequencies:\n")
+print(chisq_result$expected)
+
+# Calculate Cramér's V for effect size
+n <- sum(contingency_table)
+chi_sq <- chisq_result$statistic
+min_dim <- min(nrow(contingency_table), ncol(contingency_table)) - 1
+cramers_v <- sqrt(chi_sq / (n * min_dim))
+
+cat("\nCramér's V (effect size):", cramers_v, "\n")
+```
+
+
+### **HYPOTHESIS TEST 1: Addiction Level → Mental Health Score**
+
+**Step 1: State the Claim**
+
+- **Null Hypothesis (H₀):** μ_low = μ_moderate = μ_high  
+  The mean mental health scores are equal across all three addiction level categories (Low, Moderate, High).
+
+- **Alternative Hypothesis (Hₐ):** At least one μ is different  
+  At least one addiction level category has a different mean mental health score than the others.
+
+**Step 2: Collect and Summarize the Sample**
+
+Summary Statistics by Addiction Level:
+- Low addiction (1-3): Mean = 8.06, SD = 0.24, n = 17
+- Moderate addiction (4-6): Mean = 7.27, SD = 0.54, n = 280
+- High addiction (7-10): Mean = 5.43, SD = 0.62, n = 408
+
+Total sample size: n = 705
+
+Pattern observed: As addiction level increases from Low → Moderate → High, mean mental health scores systematically decrease, suggesting a negative association between addiction and mental health. The difference between Low and High groups is 2.63 points on the 10-point scale.
+
+Conditions for one-way ANOVA:
+1. ✓ Independence: Random sample, observations independent
+2. ✓ Normality: Sample sizes large (n > 30 for Moderate and High groups); Low group small (n=17) but ANOVA is robust to violations with large overall sample
+3. ✓ Equal variances: Standard deviations reasonably similar (ratio of largest to smallest SD < 3:1)
+
+**Step 3: Assess the Evidence**
+
+- Test statistic: F = 903.54
+- Degrees of freedom: df_between = 2, df_within = 702
+- p-value = 6.83 × 10⁻¹⁹⁵ (essentially 0)
+- Effect size: η² (Eta-squared) = 0.720 (72.0% of variance in mental health explained by addiction level)
+
+**Step 4: Make a Conclusion**
+
+Decision Rule: Reject H₀ if p-value < α = 0.05
+
+Conclusion: Since p-value < 0.001, we reject the null hypothesis. There is extremely strong statistical evidence that mean mental health scores differ significantly across addiction levels. The systematic pattern (Low: 8.06 → Moderate: 7.27 → High: 5.43) indicates that higher addiction levels are associated with substantially lower mental health scores. The effect size of η² = 0.720 is extraordinarily large, far exceeding the threshold for a large effect (η² > 0.14), indicating that addiction level is THE dominant predictor of mental health outcomes in this sample. In fact, 72% of all variance in mental health can be explained by addiction level alone—this is one of the strongest effects observed in behavioral research.
+
+**Type of Error:** Because we rejected the null hypothesis, we could have made a **Type I error** (false positive). This would mean concluding that mental health differs across addiction levels when in reality there is no difference in the population. However, given the extremely small p-value (essentially zero) and extraordinarily large effect size, this is virtually impossible.
+
+**Post-hoc Test: Tukey HSD (Honestly Significant Difference)**
+
+Since the null hypothesis was rejected and there are more than two groups, a Tukey HSD post-hoc test was conducted to determine which specific pairs of addiction levels differ significantly:
+
+Results (all comparisons at α = 0.05):
+- **Moderate vs. Low**: Mean difference = -0.79, 95% CI: [-1.13, -0.44], p = 3×10⁻⁷ (significant)  
+  Students with moderate addiction score about 0.79 points lower on mental health than those with low addiction.
+
+- **High vs. Low**: Mean difference = -2.63, 95% CI: [-2.97, -2.28], p < 0.001 (significant)  
+  Students with high addiction score about 2.63 points lower on mental health than those with low addiction.
+
+- **High vs. Moderate**: Mean difference = -1.84, 95% CI: [-1.94, -1.73], p < 0.001 (significant)  
+  Students with high addiction score about 1.84 points lower on mental health than those with moderate addiction.
+
+Interpretation: All three pairwise comparisons are statistically significant. Each increase in addiction category (Low → Moderate → High) is associated with a statistically significant and practically meaningful decrease in mental health scores. The largest difference is between Low and High addiction groups (2.63 points on the 10-point scale, representing 26% of the entire scale), representing a massive deterioration in mental health associated with high addiction levels. This is not just statistically significant but clinically meaningful—moving from "good mental health" (8.06) to "struggling" (5.43).
+
+═══════════════════════════════════════════════════════════════════════
+
+### **HYPOTHESIS TEST 2: Addiction Score → Relationship Conflicts**
+
+**Step 1: State the Claim**
+
+- **Null Hypothesis (H₀):** ρ = 0  
+  There is no linear relationship between addiction score and relationship conflicts in the population (correlation is zero).
+
+- **Alternative Hypothesis (Hₐ):** ρ ≠ 0  
+  There is a linear relationship between addiction score and relationship conflicts in the population (correlation is not zero).
+
+**Step 2: Collect and Summarize the Sample**
+
+Summary Statistics:
+- Addiction Score: Mean = 6.44, SD = 1.59
+- Relationship Conflicts: Mean = 2.85, SD = 0.96
+- Sample size: n = 705
+- Sample correlation: r = 0.934
+
+Conditions for Pearson correlation test:
+1. ✓ Linear relationship: Scatterplot shows strong linear pattern
+2. ✓ No extreme outliers: Data well-distributed along line
+3. ✓ Independence: Observations are independent
+4. ✓ Large sample size (n > 30)
+
+**Step 3: Assess the Evidence**
+
+- Correlation coefficient: r = 0.934
+- R² = 0.872 (87.2% of variance in conflicts explained by addiction score)
+- Test statistic: t = 69.08
+- Degrees of freedom: df = 703
+- p-value < 2.2 × 10⁻¹⁶ (essentially 0)
+- 95% Confidence Interval for r: [0.923, 0.942]
+
+**Step 4: Make a Conclusion**
+
+Decision Rule: Reject H₀ if p-value < α = 0.05
+
+Conclusion: Since p-value < 0.001, we reject the null hypothesis. There is extremely strong statistical evidence of a positive linear relationship between addiction score and relationship conflicts. The correlation of r = 0.934 indicates an extraordinarily strong positive association—this is one of the highest correlations observed in behavioral research. As addiction scores increase, the number of relationship conflicts increases substantially and predictably. The R² value of 0.872 means that 87% of all variance in relationship conflicts can be explained by addiction score alone, indicating that addiction is THE dominant predictor of relationship problems in this sample.
+
+**Type of Error:** Because we rejected the null hypothesis, we could have made a **Type I error** (false positive). However, with such an extremely small p-value (essentially zero) and extraordinarily high correlation, this is virtually impossible.
+
+**Post-hoc Test: Regression Slope Interpretation**
+
+Linear regression results:
+- Equation: Conflicts = -0.777 + 0.563 × Addiction_Score
+- Intercept: β₀ = -0.777 (SE = 0.054), t = -14.38, p < 0.001
+- Slope: β₁ = 0.563 (SE = 0.008), t = 69.08, p < 0.001
+- 95% CI for slope: [0.550, 0.576]
+- Residual standard error: 0.344
+- F-statistic: F(1, 703) = 4771, p < 0.001
+
+Interpretation: For each 1-point increase in addiction score, the number of relationship conflicts increases by approximately 0.56 conflicts on average (95% CI: 0.55 to 0.58). This is a substantial practical effect. For example:
+- A student with addiction score 3 would be predicted to have approximately 1.0 conflicts
+- A student with addiction score 5 would be predicted to have approximately 2.0 conflicts  
+- A student with addiction score 8 would be predicted to have approximately 3.7 conflicts
+
+Therefore, a student moving from low addiction (score 3) to high addiction (score 8) would be predicted to experience approximately 2.8 more relationship conflicts. This represents a transformation from minimal relationship problems to frequent conflicts—a qualitative shift in relationship health that would likely be noticed by the student and their partners.
+
+═══════════════════════════════════════════════════════════════════════
+
+### **HYPOTHESIS TEST 3: Usage Category → Academic Performance**
+
+**Step 1: State the Claim**
+
+- **Null Hypothesis (H₀):** Usage category and academic performance impact are independent  
+  There is no association between social media usage category and whether students report negative academic impact.
+
+- **Alternative Hypothesis (Hₐ):** Usage category and academic performance impact are not independent  
+  There is an association between social media usage category and whether students report negative academic impact.
+
+**Step 2: Collect and Summarize the Sample**
+
+Sample Proportions (reporting "Yes" - negative impact):
+- Moderate usage (2-4h): 15.6% (26/167)
+- High usage (4-6h): 72.3% (284/393)
+- Very high usage (6+h): 100% (143/143)
+
+Total sample size: n = 703 (excluding Low usage category with n=2)
+
+Contingency Table:
+```
+                    No    Yes
+Moderate (2-4h)    141     26
+High (4-6h)        109    284
+Very High (6+h)      0    143
+```
+
+Conditions for chi-square test:
+1. ✓ Independence: Observations are independent
+2. ✓ Expected frequencies: All expected counts > 5 (minimum = 50.85)
+3. ✓ Random sample from population
+
+**Step 3: Assess the Evidence**
+
+- Chi-square test statistic: χ² = 263.47
+- Degrees of freedom: df = 2
+- p-value = 6.15 × 10⁻⁵⁸ (essentially 0)
+- Effect size: Cramér's V = 0.612 (large effect)
+
+**Step 4: Make a Conclusion**
+
+Decision Rule: Reject H₀ if p-value < α = 0.05
+
+Conclusion: Since p-value < 0.001, we reject the null hypothesis. There is extremely strong statistical evidence of an association between social media usage category and academic performance impact. Students in higher usage categories are substantially more likely to report that social media negatively affects their academic performance. The effect size (Cramér's V = 0.612) indicates a large practical significance (V > 0.5 is considered large).
+
+The pattern is striking: only 15.6% of moderate users report negative impact, but this jumps to 72.3% for high users and reaches 100% for very high users. This monotonic relationship suggests not just statistical association but a clear dose-response pattern where increased usage progressively increases the likelihood of academic problems.
+
+**Type of Error:** Because we rejected the null hypothesis, we could have made a **Type I error** (false positive). However, the extremely small p-value makes this highly unlikely.
+
+**Post-hoc Test:** The pattern is clear and monotonic: as usage increases from Moderate → High → Very High, the proportion reporting negative academic impact increases dramatically (15.6% → 72.3% → 100%). Given the large sample sizes and dramatic differences in proportions, all pairwise comparisons would be statistically significant. The zero count in the "Very High/No" cell is particularly noteworthy—literally 100% of students using social media 6+ hours daily report academic problems, suggesting this usage level is incompatible with academic success.
+
+
 
 ## 8. Moderation
+```{r moderation, fig.width=12, fig.height=6}
+# MODERATION ANALYSIS: Does Gender moderate the relationship between
+# Addiction Score and Conflicts?
+
+
+
+cat("MODERATION ANALYSIS\n")
+cat("Research Question: Does gender moderate the relationship between\n")
+cat("addiction score and relationship conflicts?\n")
+
+
+# Separate data by gender
+male_data <- subset(data_subset, Gender == "Male")
+female_data <- subset(data_subset, Gender == "Female")
+
+# Calculate correlations for each group
+cor_male <- cor.test(male_data$Addicted_Score, 
+                     male_data$Conflicts_Over_Social_Media)
+cor_female <- cor.test(female_data$Addicted_Score, 
+                       female_data$Conflicts_Over_Social_Media)
+
+cat("Correlation for Males:\n")
+print(cor_male)
+
+cat("\n\nCorrelation for Females:\n")
+print(cor_female)
+
+# Create side-by-side scatterplots
+par(mfrow=c(1,2))
+
+# Male plot
+plot(male_data$Addicted_Score, 
+     male_data$Conflicts_Over_Social_Media,
+     main = "Males: Addiction Score vs Conflicts",
+     xlab = "Addiction Score",
+     ylab = "Number of Conflicts",
+     pch = 19,
+     col = rgb(0.2, 0.4, 0.8, 0.5),
+     xlim = c(2, 9),
+     ylim = c(0, 5))
+abline(lm(Conflicts_Over_Social_Media ~ Addicted_Score, data = male_data), 
+       col = "blue", lwd = 3)
+legend("topleft", 
+       legend = paste("r =", round(cor_male$estimate, 3)),
+       bty = "n", cex = 1.2)
+
+# Female plot
+plot(female_data$Addicted_Score, 
+     female_data$Conflicts_Over_Social_Media,
+     main = "Females: Addiction Score vs Conflicts",
+     xlab = "Addiction Score",
+     ylab = "Number of Conflicts",
+     pch = 19,
+     col = rgb(0.8, 0.2, 0.4, 0.5),
+     xlim = c(2, 9),
+     ylim = c(0, 5))
+abline(lm(Conflicts_Over_Social_Media ~ Addicted_Score, data = female_data), 
+       col = "red", lwd = 3)
+legend("topleft", 
+       legend = paste("r =", round(cor_female$estimate, 3)),
+       bty = "n", cex = 1.2)
+
+par(mfrow=c(1,1))
+
+# Test for moderation using interaction term in regression
+moderation_model <- lm(Conflicts_Over_Social_Media ~ Addicted_Score * Gender, 
+                       data = data_subset)
+
+cat("\n\nModeration Model (with interaction term):\n")
+print(summary(moderation_model))
+
+# Fisher's Z-test to compare correlations
+z_fisher <- (atanh(cor_male$estimate) - atanh(cor_female$estimate)) / 
+            sqrt(1/(length(male_data$Addicted_Score)-3) + 
+                 1/(length(female_data$Addicted_Score)-3))
+
+p_value_fisher <- 2 * (1 - pnorm(abs(z_fisher)))
+
+cat("\n\nFisher's Z-test for difference in correlations:\n")
+cat("Z =", z_fisher, "\n")
+cat("p-value =", p_value_fisher, "\n")
+
+if(p_value_fisher < 0.05) {
+  cat("Conclusion: Correlations are significantly different between males and females.\n")
+  cat("Gender moderates the relationship.\n")
+} else {
+  cat("Conclusion: Correlations are not significantly different between males and females.\n")
+  cat("No evidence of moderation by gender.\n")
+}
+```
 
 ## 9. Save
 
@@ -334,6 +732,13 @@ cat("Cleaned dataset saved successfully.\n")
 cat("Number of observations:", nrow(data_subset), "\n")
 cat("Number of variables:", ncol(data_subset), "\n")
 ```
+
+## Summary of Findings
+
+Based on the exploratory data analysis done, interesting patterns were observed in the Students' Social Media Addiction dataset. First, examining the relationship between daily social media usage hours and academic performance reveals a clear distinction between students who report negative academic impacts and those who do not. Students who indicate that social media affects their academic performance negatively use social media for an average of approximately 5.54 hours per day, compared to about 3.80 hours for students who report no negative impact. This 1.74-hour difference (5.54-3.8) suggests excessive usage may interfere with academic responsibilities. The boxplot visualization clearly shows not only higher median usage among affected students but also greater variability in their usage patterns, with some students spending over 7 hours daily on social media platforms. The distributions show minimal overlap between the two groups, suggesting a meaningful and substantial difference that warrants further statistical investigation through hypothesis testing.
+
+
+The second research question, exploring the association between addiction scores and relationship conflicts, demonstrates an even more compelling pattern. The scatterplot reveals a powerful positive linear relationship between these variables, with a Pearson correlation coefficient of approximately 0.934. This high correlation suggests that as students' addiction scores increase, they experience proportionally more conflicts over social media use in their relationships. The relationship appears nearly deterministic within this sample: students with low addiction scores (1-3) typically report 0-1 conflicts, those with moderate scores (4-6) report 1-3 conflicts, and those with high addiction scores (7-10) frequently report 3-5 conflicts. Additional interesting findings emerged from the exploratory analysis, including the observation that students using platforms like TikTok and Instagram tend to report higher addiction scores compared to LinkedIn users, and that mental health scores appear to decline systematically as addiction levels increase. The data reveal that approximately 64% of the sample reports that social media negatively affects their academic performance, with over half the sample falling into the "High" addiction category (scores 7-10). These preliminary findings strongly suggest meaningful associations exist between social media usage patterns, addiction severity, academic outcomes, and interpersonal relationships.
 
 ---
 
